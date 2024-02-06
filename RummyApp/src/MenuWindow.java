@@ -39,7 +39,7 @@ public class MenuWindow extends AbstractWindow {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dispose();
-                new GameWindow();
+                new HostWindow();
             }
         });
 
