@@ -1,5 +1,6 @@
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
@@ -69,23 +70,27 @@ public class GameWindow extends AbstractWindow{
 
         //Listed players Customization
         tablePlayers = new JTable(){
-//            @Override
-//            public boolean isRowSelected(int row) {
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean isColumnSelected(int column) {
-//                return false;
-//            }
+            @Override
+            public boolean isRowSelected(int row) {
+                return false;
+            }
 
-//            @Override
-//            public boolean isCellSelected(int row, int column) {
-//                return false;
-//            }
+            @Override
+            public boolean isColumnSelected(int column) {
+                return false;
+            }
+
+            @Override
+            public boolean isCellSelected(int row, int column) {
+                return false;
+            }
         };
         tablePlayers.setShowHorizontalLines(true);
         tablePlayers.setShowVerticalLines(true);
+
+        //Set colorfull border for table
+        Border lineBorder = BorderFactory.createLineBorder(backgroundBlue, 2);
+        tablePlayers.setBorder(lineBorder);
 
         //Specify table model is such a way that first column is interpreted as ImageIcons second as Strings and third as Integers
         //Which corresponds to the fact that first column contains icons representing players second their nicks and third the number of tiles they have left
@@ -198,7 +203,7 @@ public class GameWindow extends AbstractWindow{
         tableHand.setRowHeight(50);
 
         //Set color
-        tableHand.setBackground(new Color(67,107,123));
+        tableHand.setBackground(backgroundBlue);
 
         //Initialize Exemplary Arrays
         initializeLogicArraysWithExemplaryData();
@@ -253,7 +258,7 @@ public class GameWindow extends AbstractWindow{
         //Players List Data
         logicPlayersList = new Object[4][3];
 
-        ImageIcon userImage = new ImageIcon(new ImageIcon("C:\\Users\\braghgi\\Documents\\Informatyka\\java\\Rummy\\RummyGUIDesigner\\RummyApp\\graphics\\user.png").getImage().getScaledInstance(30,30, Image.SCALE_SMOOTH));
+        ImageIcon userImage = new ImageIcon(new ImageIcon("RummyApp/graphics/user.png").getImage().getScaledInstance(25,25, Image.SCALE_SMOOTH));
 
         logicPlayersList[0][0] = userImage;
         logicPlayersList[1][0] = userImage;
