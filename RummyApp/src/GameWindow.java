@@ -10,9 +10,7 @@ import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Stack;
+import java.util.*;
 
 
 public class GameWindow extends AbstractWindow{
@@ -44,7 +42,8 @@ public class GameWindow extends AbstractWindow{
     private DefaultTableModel modelPlayers;
 
     //Interaction
-    private int tileHeld = -1;
+    private LinkedList<Integer> tilesHeld = new LinkedList<>();
+    private boolean selectMultiple = false;
 
     //Cursors
     private static final Image grabCursorImage = Toolkit.getDefaultToolkit().getImage("RummyApp/graphics/icon_grab_white.png");
@@ -61,8 +60,9 @@ public class GameWindow extends AbstractWindow{
         this.setContentPane(panelMain);
         //Set action listener
         this.initListeners();
+        //Set key binding
+        setKeyBindings();
     }
-
 
     private void createUIComponents() {
 
@@ -127,6 +127,7 @@ public class GameWindow extends AbstractWindow{
         tablePlayers.getColumnModel().getColumn(1).setResizable(true);
 
         //Playing board
+
         tableBoard = new JTable(){
             @Override
             public boolean getRowSelectionAllowed() {
@@ -137,11 +138,17 @@ public class GameWindow extends AbstractWindow{
             public boolean getColumnSelectionAllowed() {
                 return true;
             }
+
+            @Override
+            public boolean isFocusable() {
+                return true;
+            }
         };
 
         tableBoard.setShowVerticalLines(true);
         tableBoard.setShowHorizontalLines(true);
         tableBoard.setTableHeader(null);
+        tableBoard.setFocusable(true);
 
         //Specify table model
         modelBoard = new DefaultTableModel(){
@@ -276,84 +283,128 @@ public class GameWindow extends AbstractWindow{
         logicPlayersList[3][2] = 2;
     }
 
-    @Override
-    protected void initListeners() {
 
-        tableBoard.addKeyListener(new KeyListener() {
-            @Override
-            public void keyTyped(KeyEvent e) {
-            }
+    private void setKeyBindings(){
 
-            @Override
-            public void keyPressed(KeyEvent e) {
-                int keyCode = e.getKeyCode();
-                switch (keyCode) {
-                    case KeyEvent.VK_UP:
-                        scrollVertically(scrollPanel, -1);
-                        System.out.println("up");
-                        break;
-                    case KeyEvent.VK_DOWN:
-                        scrollVertically(scrollPanel, 1);
-                        System.out.println("down");
-                        break;
-                    case KeyEvent.VK_LEFT:
-                        scrollHorizontally(scrollPanel, -1);
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        scrollHorizontally(scrollPanel, 1);
-                        break;
-                }
-            }
+        //Key Bindings for main panel
+        InputMap mainInputs = panelMain.getInputMap();
+        ActionMap mainActions = panelMain.getActionMap();
 
+        //Turning on and off multiple selection mode
+        mainInputs.put(KeyStroke.getKeyStroke("SPACE"),"pressed space");
+        mainInputs.put(KeyStroke.getKeyStroke("released SPACE"),"released space");
+
+        mainActions.put("pressed space", new AbstractAction() {
             @Override
-            public void keyReleased(KeyEvent e) {
+            public void actionPerformed(ActionEvent e) {
+                selectMultiple = true;
             }
         });
+
+        mainActions.put("released space", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                selectMultiple = false;
+            }
+        });
+
+        //Moving the board using arrow keys
+        mainInputs.put(KeyStroke.getKeyStroke("UP"),"up");
+        mainInputs.put(KeyStroke.getKeyStroke("DOWN"),"down");
+        mainInputs.put(KeyStroke.getKeyStroke("RIGHT"),"right");
+        mainInputs.put(KeyStroke.getKeyStroke("LEFT"),"left");
+
+        mainActions.put("up", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                scrollVertically(scrollPanel, -1);
+            }
+        });
+        mainActions.put("down", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                scrollVertically(scrollPanel, 1);
+            }
+        });
+        mainActions.put("right", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                scrollHorizontally(scrollPanel, 1);
+            }
+        });
+        mainActions.put("left", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                scrollHorizontally(scrollPanel, -1);
+            }
+        });
+
+    }
+
+    @Override
+    protected void initListeners() {
 
         tableBoard.addMouseListener(new MouseListener() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
 
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {
                 //Extract selected cell index
                 int sRow = tableBoard.getSelectedRow();
                 int sCol = tableBoard.getSelectedColumn();
 
-                //Value -1 symbolize that no tile is held
-                try {
+                System.out.println("selected row : " + sRow + " selected col : " + sCol);
 
-                    //If no tile is held - grab tile from selected cell, change value of held tile and change cursor image
-                    if (tileHeld == -1){
-                        tileHeld = (int) tableBoard.getValueAt(sRow,sCol);
-                        tableBoard.setValueAt(null,sRow,sCol);
-                        tableBoard.setCursor(cursorCards);
-                    }
-                    //else wise if card is already held, place it on selected cell and change cursor image
-                    else {
-                        tableBoard.setValueAt(tileHeld,sRow,sCol);
-                        tileHeld = -1;
-                        tableBoard.setCursor(cursorGrab);
+                //If some cards are held in hand, then lay them out on board
+                if (!tilesHeld.isEmpty()){
+
+                    int startingColumn = sCol;
+                    while (!tilesHeld.isEmpty()){
+
+                        placeTile(sRow,sCol);
+
+                        //Lay them out in consecutive columns, if border of board is reached, then move to next row
+                        if (sCol < tableBoard.getColumnCount() -1){
+                            sCol++;
+                        } else{
+                            sRow++;
+                            sCol = startingColumn;
+                        }
                     }
 
-                } catch (NullPointerException exc){
-                    tileHeld = -1;
+                }
+                //If no card is held and selectMultiple option is diabled, then grab tile
+                else if (! selectMultiple) {
+                    grabTile(sRow,sCol);
                 }
 
-                System.out.println("Mouse pressed at " + sRow + " " + sCol);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                System.out.println("Number of selected rows - " + tableBoard.getSelectedRowCount() + " and number of selected columns - " + tableBoard.getSelectedColumnCount());
+
+                //If no cards are held in hand and selectMultiple option is enabled grab all cards from selected tiles
+                if (tilesHeld.isEmpty() && selectMultiple){
+
+                    //grab selected tiles
+                    for (int sRow : tableBoard.getSelectedRows()){
+                        for (int sCol : tableBoard.getSelectedColumns()){
+                            grabTile(sRow,sCol);
+                        }
+                    }
+                }
+
             }
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (tileHeld == -1)
+
+                if (tilesHeld.isEmpty())
                     tableBoard.setCursor(cursorGrab);
                 else
                     tableBoard.setCursor(cursorCards);
@@ -365,16 +416,33 @@ public class GameWindow extends AbstractWindow{
             }
         });
 
-        modelBoard.addTableModelListener(new TableModelListener() {
 
-            @Override
-            public void tableChanged(TableModelEvent e) {
+    }
 
+    private boolean grabTile(int row, int col){
+        if (tableBoard.getValueAt(row,col) != null){
+            tilesHeld.add((int) tableBoard.getValueAt(row,col));
+            tableBoard.setValueAt(null,row,col);
+            tableBoard.setCursor(cursorCards);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean placeTile(int row, int col){
+
+        //If chosen place on board is free and If some tiles are held, place first one
+        if (!tilesHeld.isEmpty() && tableBoard.getValueAt(row,col) == null){
+            tableBoard.setValueAt(tilesHeld.pop(),row,col);
+
+            //If no tile is held, change cursor image
+            if (tilesHeld.isEmpty()){
+                //Set cursor indicating that hand is free
+                tableBoard.setCursor(cursorGrab);
             }
-
-        });
-
-
+            return true;
+        }
+        return false;
     }
 
     private static void scrollVertically(JScrollPane scrollPanel, int direction) {
