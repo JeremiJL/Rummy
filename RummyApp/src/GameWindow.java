@@ -43,7 +43,9 @@ public class GameWindow extends AbstractWindow{
 
     //Interaction
     private LinkedList<Integer> tilesHeld = new LinkedList<>();
+    private tableFlags tilesSource;
     private boolean selectMultiple = false;
+    enum tableFlags {BOARD,HAND}
 
     //Cursors
     private static final Image grabCursorImage = Toolkit.getDefaultToolkit().getImage("RummyApp/graphics/icon_grab_white.png");
@@ -52,6 +54,91 @@ public class GameWindow extends AbstractWindow{
     private static final Image cardsCursorImage = Toolkit.getDefaultToolkit().getImage("RummyApp/graphics/icon_card_white.png");
     private static final Cursor cursorCards = Toolkit.getDefaultToolkit().createCustomCursor(cardsCursorImage, new Point(3, 0), "Cards Cursor");
 
+    //Listener implementation
+    class tileMouseListener implements MouseListener {
+
+        private JTable table;
+        private tableFlags flag;
+
+        public tileMouseListener(JTable table, tableFlags flag){
+            this.table = table;
+            this.flag = flag;
+        }
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+
+            //Extract selected cell index
+            int sRow = table.getSelectedRow();
+            int sCol = table.getSelectedColumn();
+
+            System.out.println("selected row : " + sRow + " selected col : " + sCol);
+
+            //If some cards are held in hand, then lay them out on board
+            //If player will perform illegal action - place tile from board to his hand, then break the loop
+            if (!tilesHeld.isEmpty()) {
+
+                boolean illegalAction = false;
+                int startingColumn = sCol;
+
+                while (!tilesHeld.isEmpty() && !illegalAction) {
+
+                    illegalAction = !placeTile(sRow, sCol, table, this.flag);
+
+                    //Lay them out in consecutive columns, if border of board is reached, then move to next row
+                    if (sCol < table.getColumnCount() - 1) {
+                        sCol++;
+                    } else {
+                        sRow++;
+                        sCol = startingColumn;
+                    }
+                }
+
+            }
+            //If no card is held and selectMultiple option is diabled, then grab tile
+            else if (!selectMultiple) {
+                grabTile(sRow, sCol, table, this.flag);
+            }
+
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+
+            //If no cards are held in hand and selectMultiple option is enabled grab all cards from selected tiles
+            if (tilesHeld.isEmpty() && selectMultiple) {
+
+                //grab selected tiles
+                for (int sRow : table.getSelectedRows()) {
+                    for (int sCol : table.getSelectedColumns()) {
+                        grabTile(sRow, sCol, table, this.flag);
+                    }
+                }
+            }
+
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+
+            System.out.println(table);
+            if (tilesHeld.isEmpty())
+                table.setCursor(cursorGrab);
+            else
+                table.setCursor(cursorCards);
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            table.setCursor(Cursor.getDefaultCursor());
+        }
+
+    }
 
     public GameWindow() {
         //Invoking abstract window init
@@ -112,7 +199,6 @@ public class GameWindow extends AbstractWindow{
                 return false;
             }
 
-
         };
 
         //Set up columns
@@ -124,7 +210,6 @@ public class GameWindow extends AbstractWindow{
         tablePlayers.setRowHeight(40);
         //Change width of column containing nicks
         tablePlayers.getColumnModel().getColumn(1).setPreferredWidth(120);
-        tablePlayers.getColumnModel().getColumn(1).setResizable(true);
 
         //Playing board
 
@@ -179,17 +264,25 @@ public class GameWindow extends AbstractWindow{
         //Hand of player
         tableHand = new JTable(){
             @Override
-            public boolean isRowSelected(int row) {
-                return false;
+            public boolean getRowSelectionAllowed() {
+                return true;
             }
 
             @Override
-            public boolean isColumnSelected(int column) {
+            public boolean getColumnSelectionAllowed() {
+                return true;
+            }
+
+            @Override
+            public boolean isFocusable() {
                 return false;
             }
         };
+
         tableHand.setShowHorizontalLines(true);
         tableHand.setShowVerticalLines(true);
+        tableHand.setTableHeader(null);
+        tableHand.setFocusable(false);
 
         //Specify table model
         modelHand = new DefaultTableModel(){
@@ -242,6 +335,7 @@ public class GameWindow extends AbstractWindow{
         }
     }
 
+    //TMP - ONLY FOR TEST/VISUAL PURPOSES
     private void initializeLogicArraysWithExemplaryData(){
 
         //Logic Playing Board Data
@@ -259,7 +353,6 @@ public class GameWindow extends AbstractWindow{
 
         for (int i = 0; i < 20; i++){
             logicHand[0][i] = (int)( Math.random()*13);
-            logicHand[1][i] = (int)( Math.random()*13);
         }
 
         //Players List Data
@@ -282,7 +375,6 @@ public class GameWindow extends AbstractWindow{
         logicPlayersList[2][2] = 1;
         logicPlayersList[3][2] = 2;
     }
-
 
     private void setKeyBindings(){
 
@@ -344,104 +436,53 @@ public class GameWindow extends AbstractWindow{
     @Override
     protected void initListeners() {
 
-        tableBoard.addMouseListener(new MouseListener() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-
-                //Extract selected cell index
-                int sRow = tableBoard.getSelectedRow();
-                int sCol = tableBoard.getSelectedColumn();
-
-                System.out.println("selected row : " + sRow + " selected col : " + sCol);
-
-                //If some cards are held in hand, then lay them out on board
-                if (!tilesHeld.isEmpty()){
-
-                    int startingColumn = sCol;
-                    while (!tilesHeld.isEmpty()){
-
-                        placeTile(sRow,sCol);
-
-                        //Lay them out in consecutive columns, if border of board is reached, then move to next row
-                        if (sCol < tableBoard.getColumnCount() -1){
-                            sCol++;
-                        } else{
-                            sRow++;
-                            sCol = startingColumn;
-                        }
-                    }
-
-                }
-                //If no card is held and selectMultiple option is diabled, then grab tile
-                else if (! selectMultiple) {
-                    grabTile(sRow,sCol);
-                }
-
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {
-
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-
-                //If no cards are held in hand and selectMultiple option is enabled grab all cards from selected tiles
-                if (tilesHeld.isEmpty() && selectMultiple){
-
-                    //grab selected tiles
-                    for (int sRow : tableBoard.getSelectedRows()){
-                        for (int sCol : tableBoard.getSelectedColumns()){
-                            grabTile(sRow,sCol);
-                        }
-                    }
-                }
-
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-
-                if (tilesHeld.isEmpty())
-                    tableBoard.setCursor(cursorGrab);
-                else
-                    tableBoard.setCursor(cursorCards);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                tableBoard.setCursor(Cursor.getDefaultCursor());
-            }
-        });
-
+        tableBoard.addMouseListener(new tileMouseListener(tableBoard, tableFlags.BOARD));
+        tableHand.addMouseListener(new tileMouseListener(tableHand, tableFlags.HAND));
 
     }
 
-    private boolean grabTile(int row, int col){
-        if (tableBoard.getValueAt(row,col) != null){
-            tilesHeld.add((int) tableBoard.getValueAt(row,col));
-            tableBoard.setValueAt(null,row,col);
-            tableBoard.setCursor(cursorCards);
+    private boolean grabTile(int row, int col, JTable table, tableFlags source){
+
+        //Can only grab tile if there is one!
+        if (table.getValueAt(row,col) != null){
+
+            //Add tile to held-tiles-array
+            tilesHeld.add((int) table.getValueAt(row,col));
+            //Set value to null, on previous place
+            table.setValueAt(null,row,col);
+            //Set cursor indicating that tiles are held
+            table.setCursor(cursorCards);
+
+            //Set tile source, indicating from which table tile was taken
+            tilesSource = source;
             return true;
         }
         return false;
     }
 
-    private boolean placeTile(int row, int col){
+    private boolean placeTile(int row, int col, JTable table, tableFlags destination){
 
-        //If chosen place on board is free and If some tiles are held, place first one
-        if (!tilesHeld.isEmpty() && tableBoard.getValueAt(row,col) == null){
-            tableBoard.setValueAt(tilesHeld.pop(),row,col);
+        //In order to place the tile, several conditions have to be fulfilled
+        //Can not place tile from board into hand
+        //Check if any tiles are held
+        //Check if chosen place on board is free
+        //If conditions are met place first tile
 
-            //If no tile is held, change cursor image
-            if (tilesHeld.isEmpty()){
-                //Set cursor indicating that hand is free
-                tableBoard.setCursor(cursorGrab);
+        if ( ! (tilesSource == tableFlags.BOARD && destination == tableFlags.HAND)){
+
+            if (!tilesHeld.isEmpty() && table.getValueAt(row,col) == null){
+                table.setValueAt(tilesHeld.pop(),row,col);
+
+                //If no tile is held, change cursor image
+                if (tilesHeld.isEmpty()){
+                    //Set cursor indicating that hand is free
+                    table.setCursor(cursorGrab);
+                }
             }
             return true;
         }
+
+        //When player tries to put tile from board to his hand ONLY THEN return false
         return false;
     }
 
@@ -455,4 +496,8 @@ public class GameWindow extends AbstractWindow{
         horizontalScrollBar.setValue(horizontalScrollBar.getValue() + direction * horizontalScrollBar.getBlockIncrement());
     }
 
+
+
 }
+
+
