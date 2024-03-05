@@ -31,11 +31,6 @@ public class MenuWindow extends AbstractWindow {
         buttonJoin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                //TODO: MAKE THIS WORK XD
-                // It should connect with the server with a predefined username
-                MainController controller = new MainController();
-                controller.joinLobby("100.79.137.210", "nautik");
-
                 dispose();
                 new GameWindow();
             }
@@ -46,7 +41,7 @@ public class MenuWindow extends AbstractWindow {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dispose();
-                new GameWindow();
+                new HostWindow();
             }
         });
 

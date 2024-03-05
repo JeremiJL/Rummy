@@ -6,8 +6,6 @@ import RummyClient.Communication.WebsocketService;
 import commons.ExampleWebsocketMessage;
 import commons.Player;
 import commons.WebsocketMessage;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.concurrent.LinkedBlockingQueue;
 

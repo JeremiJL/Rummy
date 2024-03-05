@@ -1,8 +1,7 @@
 package RummyClient;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.formdev.flatlaf.intellijthemes.FlatSolarizedDarkIJTheme;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -18,7 +17,7 @@ public class Application {
 //		SpringApplication.run(Application.class, args);
 
 //		MainController controller = new MainController();
-//		controller.joinLobby("192.168.0.104", "nautik");
+//		controller.joinLobby("192.168.0.103", "nautik");
 
 		try {
 			UIManager.setLookAndFeel( new FlatSolarizedDarkIJTheme() );
@@ -29,10 +28,9 @@ public class Application {
 		//run menu window
 		try{
 			SwingUtilities.invokeLater(() -> new MenuWindow());
-		}catch (Exception e){
+		}catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-
 	}
 
 }

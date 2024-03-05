@@ -18,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * TODO: Handling multiple games at once
  */
 @Component
-public class GameEngine {
+public class    GameEngine {
     private final Server websocketServer;
     private final LinkedBlockingQueue<Pair<InetAddress, WebsocketMessage>> messages;
     private final WebsocketService websocketService;
